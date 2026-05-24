@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-poppins), system-ui, -apple-system, sans-serif;
+}
+
+@layer base {
+  body {
+    background-color: #f8fafc; /* Clean background slate */
+  }
+}
