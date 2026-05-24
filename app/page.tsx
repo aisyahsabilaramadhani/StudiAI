@@ -29,6 +29,208 @@ interface QuizQuestion {
   explanation: string;
 }
 
+// Highly robust Local Client-side Processing Engine to support zero-API Key deployment on Vercel
+const runLocalSummarizer = (text: string): string => {
+  const sentences = text
+    .split(/[.!?]+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 15);
+
+  if (sentences.length === 0) {
+    return "### Gagal Menganalisis\nTeks terlalu pendek untuk diringkas secara lokal. Berikan materi yang lebih panjang.";
+  }
+
+  // Group sentences by keywords
+  const definitions = sentences.filter(s => 
+    /\b(adalah|merupakan|yaitu|ialah|berupa)\b/i.test(s)
+  );
+  const processes = sentences.filter(s => 
+    /\b(proses|metode|tahap|langkah|cara|mereaksikan|menghasilkan|dari)\b/i.test(s)
+  );
+  const results = sentences.filter(s => 
+    /\b(maka|sehingga|karena|oleh karena itu|dengan demikian|menyatakan|hukum)\b/i.test(s)
+  );
+
+  let output = "## 📝 Ringkasan Materi Lokal (Klien)\n_Diproses secara instan di browsermu tanpa membutuhkan Server cloud._\n\n";
+  
+  if (definitions.length > 0) {
+    output += "### 🔍 Definisi & Konsep Dasar\n";
+    definitions.slice(0, 3).forEach(s => {
+      // Bold the word before 'adalah/merupakan/yaitu'
+      const match = s.match(/(.*?)\b(adalah|merupakan|yaitu|ialah|berupa)\b(.*)/i);
+      if (match) {
+        output += `- **${match[1].trim()}** ${match[2]} ${match[3].trim()}.\n`;
+      } else {
+        output += `- ${s}.\n`;
+      }
+    });
+    output += "\n";
+  }
+
+  if (processes.length > 0) {
+    output += "### ⚙️ Proses & Mekanisme Kerja\n";
+    processes.slice(0, 3).forEach((s, i) => {
+      output += `${i + 1}. ${s}.\n`;
+    });
+    output += "\n";
+  }
+
+  const remaining = sentences.filter(s => !definitions.includes(s) && !processes.includes(s));
+  if (results.length > 0 || remaining.length > 0) {
+    output += "### 📌 Poin Pendukung Penting\n";
+    const bullets = [...results, ...remaining].slice(0, 3);
+    bullets.forEach(s => {
+      output += `- ${s}.\n`;
+    });
+  }
+
+  return output;
+};
+
+const runLocalTutor = (text: string): string => {
+  const sentences = text
+    .split(/[.!?]+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 15);
+
+  if (sentences.length === 0) {
+    return "### Gagal Menganalisis\nTeks terlalu singkat untuk dijelaskan.";
+  }
+
+  const subject = sentences[0].split(/\b(adalah|merupakan|yaitu)\b/i)[0]?.trim() || "Topik ini";
+
+  // Create friendly tutor voice
+  let output = `## 🎓 Penjelasan Tutor StudyMate (Mode Klien)
+Hai! Yuk kita bahas **${subject}** sesederhana mungkin biar kamu langsung paham! Di sini kita tidak sedang membaca buku teks tebal, melainkan ngobrol santai layaknya diskusi kelompok.
+
+`;
+
+  // Define Concept
+  const defSentence = sentences.find(s => /\b(adalah|merupakan|yaitu|ialah|berupa)\b/i.test(s));
+  if (defSentence) {
+    output += `### 💡 Apa sih sebenernya ini?
+Berdasarkan materi yang kamu berikan, ${defSentence}. Sederhananya, anggap ini sebagai dasar dari konsep utama kita hari ini.\n\n`;
+  } else {
+    output += `### 💡 Penjelasan Utama
+Sederhananya, **${subject}** merujuk pada penjelasan dasar berikut: "${sentences[0]}".\n\n`;
+  }
+
+  // Analogy Engine based on keywords detection
+  output += `### 🌟 Analogi Sederhana Untukmu
+`;
+  if (/foto|daun|klorofil|tanaman|tumbuhan|daratan/i.test(text)) {
+    output += `Bayangkan tumbuhan seperti sebuah **Restoran Makanan**. Daun adalah dapurnya, matahari adalah kompor apinya, karbondioksida & air adalah bahan masakan mentahnya, dan glukosa adalah hidangan lezat yang disajikan! Keren kan bagaimana daun memasak makanannya sendiri?\n\n`;
+  } else if (/gravitasi|newton|gaya|tarik|bumi|apel|fisika/i.test(text)) {
+    output += `Bayangkan gravitasi seperti sebuah *tali tak kasat mata* yang dipegang oleh semua benda bermassa. Semakin gendut (besar massanya) suatu benda, semakin kuat ia menarik tali tersebut, membuat benda lain yang mendekat tergelincir ke arahnya!\n\n`;
+  } else if (/algoritma|komputer|program|instruksi|langkah/i.test(text)) {
+    output += `Bayangkan algoritma seperti sebuah **Resep Rahasia Membuat Mie Celor**. Ada urutan langkah yang wajib kamu lewati satu per satu: ambil mie, rebus air, masukkan bumbu. Kalau salah urutan, rasa mie tersebut akan berantakan! Begitu pula instruksi komputer bekerja.\n\n`;
+  } else {
+    output += `Bayangkan konsep ini seperti sebuah **mesin mainan Lego**. Setiap kalimat materi yang kamu masukkan adalah balok-balok kecil berbeda warna. Ketika disatukan dengan benar, ia membentuk pondasi bangunan utuh yang kokoh!\n\n`;
+  }
+
+  // Deep dive points
+  if (sentences.length > 2) {
+    output += "### 🛠️ Mari Bedah Lebih Dalam\n";
+    sentences.slice(1, 4).forEach((s, idx) => {
+      output += `- **Langkah ${idx + 1}:** ${s}.\n`;
+    });
+  }
+
+  output += `\n---\n_💡 Tips Tutor: Coba uji memorimu sekarang dengan menu **Kuis Interaktif** di kanan atas!_`;
+  return output;
+};
+
+const runLocalQuiz = (text: string): QuizQuestion[] => {
+  const sentences = text
+    .split(/[.!?;]+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 20);
+
+  // If we don't have enough content, let's inject solid dummy questions based on topic text context, or robust generic templates.
+  const quizSet: QuizQuestion[] = [];
+
+  // Keywords Extractor helper
+  const extractNouns = (str: string): string[] => {
+    // Basic Indonesian noun extraction guesses: capitalized words or words ending in 'si', 'is', 'ma', 'al'
+    const words = str.split(/\s+/)
+      .map(w => w.replace(/[^a-zA-Z0-9]/g, ""))
+      .filter(w => w.length > 4);
+    
+    // Get unique list
+    return Array.from(new Set(words));
+  };
+
+  const allNouns = extractNouns(text);
+
+  // Fallback options
+  const defaultDeceptors = [
+    "Reaksi Kompleks Enzimatis",
+    "Gaya Magnetik Sentripetal",
+    "Struktur Logika Rekursif",
+    "Fungsi Termodinamika Lanjut",
+    "Teori Mekanika Kuantum",
+    "Metodologi Deduktif Analitis"
+  ];
+
+  // Let's frame 5 questions
+  for (let i = 0; i < 5; i++) {
+    // pick a sentence as source if available
+    const srcSentence = sentences[i % sentences.length] || "Materi instruksi kuliah memberikan pemahaman penting tentang pemikiran logika.";
+    
+    // Pick keyword to mask
+    let targetWord = "";
+    const indonesianKeywords = ["fotosintesis", "klorofil", "gravitasi", "newton", "algoritma", "finiteness", "definiteness", "glukosa", "energi", "massa", "hukum", "proses", "instruksi"];
+    
+    // Try to find a matches
+    const wordsInSentence = srcSentence.toLowerCase().split(/\s+/).map(w => w.replace(/[^a-z]/g, ""));
+    const foundKeyword = indonesianKeywords.find(k => wordsInSentence.includes(k));
+
+    if (foundKeyword) {
+      targetWord = srcSentence.split(/\s+/).find(w => w.toLowerCase().replace(/[^a-z]/g, "") === foundKeyword) || foundKeyword;
+    } else {
+      // Pick longest word
+      const sortedByLength = srcSentence.split(/\s+/).filter(w => w.length > 5).sort((a,b) => b.length - a.length);
+      targetWord = sortedByLength[0] || "Konsep";
+    }
+
+    // Capitalize target word for clarity
+    const displayWord = targetWord.charAt(0).toUpperCase() + targetWord.slice(1).replace(/[^a-zA-Z]/g, "");
+
+    // Mask sentence
+    const regex = new RegExp(`\\b${targetWord.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}\\b`, 'i');
+    const questionText = `Berdasarkan teks materi, apa istilah atau bagian rumpang yang tepat untuk melengkapi pernyataan berikut:\n\n"${srcSentence.replace(regex, "_______")}"?`;
+
+    // Construct options
+    const rawOptions = [displayWord];
+    // Gather decepters
+    const otherWords = allNouns.filter(w => w.toLowerCase() !== targetWord.toLowerCase() && w.length > 5);
+    
+    while (rawOptions.length < 4) {
+      const decep = otherWords[Math.floor(Math.random() * otherWords.length)] || defaultDeceptors[Math.floor(Math.random() * defaultDeceptors.length)];
+      const formattedDecep = decep.charAt(0).toUpperCase() + decep.slice(1).replace(/[^a-zA-Z]/g, "");
+      if (!rawOptions.includes(formattedDecep)) {
+        rawOptions.push(formattedDecep);
+      }
+    }
+
+    // Shuffle options
+    const shuffledOptions = [...rawOptions].sort(() => Math.random() - 0.5);
+    const correctIdx = shuffledOptions.indexOf(displayWord);
+    const correctLetter = ["A", "B", "C", "D"][correctIdx] || "A";
+
+    const letteredOptions = shuffledOptions.map((opt, oIdx) => `${["A", "B", "C", "D"][oIdx]}. ${opt}`);
+
+    quizSet.push({
+      question: questionText,
+      options: letteredOptions,
+      correctAnswer: correctLetter,
+      explanation: `Jawaban yang benar adalah '${correctLetter}. ${displayWord}'. Di dalam teks materi tertulis secara nyata: "${srcSentence}".`
+    });
+  }
+
+  return quizSet;
+};
+
 const SAMPLE_MATERIALS = [
   {
     title: "Fotosintesis & Klorofil",
@@ -59,6 +261,7 @@ export default function StudyMateApp() {
   const [inputText, setInputText] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
+  const [isLocalMode, setIsLocalMode] = useState(true); // Default to local mode for hassle-free Vercel deployments
   
   // Results & active tab states
   const [activeTab, setActiveTab] = useState<"summary" | "tutor" | "quiz">("summary");
@@ -93,7 +296,7 @@ export default function StudyMateApp() {
     }
   }, [toast]);
 
-  // Handle actions
+  // Handle actions (Supports Cloud Gemini API and Offline Native Client Processing)
   const handleAIService = async (action: "summarize" | "explain" | "quiz") => {
     if (!inputText.trim()) {
       setToast({
@@ -114,6 +317,36 @@ export default function StudyMateApp() {
     setLoadingStep(0);
     setActiveTab(action === "summarize" ? "summary" : action === "explain" ? "tutor" : "quiz");
 
+    // Scenario A: Client-side local offline parser (Vercel deployment friendly, zero API Key required)
+    if (isLocalMode) {
+      // Simulate natural thinking loader delay for improved UX polish
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
+      try {
+        if (action === "summarize") {
+          const summary = runLocalSummarizer(inputText);
+          setSummaryResult(summary);
+          setToast({ type: "success", text: "Ringkasan materi selesai dibuat secara lokal!" });
+        } else if (action === "explain") {
+          const tutor = runLocalTutor(inputText);
+          setTutorResult(tutor);
+          setToast({ type: "success", text: "Penjelasan Tutor AI siap diajarkan secara lokal!" });
+        } else if (action === "quiz") {
+          const quiz = runLocalQuiz(inputText);
+          setQuizQuestions(quiz);
+          setSelectedAnswers({});
+          setQuizSubmitted(false);
+          setToast({ type: "success", text: "Kuis evaluasi baru berhasil dibuat secara lokal!" });
+        }
+      } catch (err: any) {
+        setToast({ type: "error", text: "Gagal memproses materi secara lokal." });
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    // Scenario B: Real-time Remote Gemini Cloud API Route
     try {
       const response = await fetch("/api/gemini", {
         method: "POST",
@@ -134,21 +367,21 @@ export default function StudyMateApp() {
 
       if (action === "summarize") {
         setSummaryResult(data.result);
-        setToast({ type: "success", text: "Ringkasan materi selesai dibuat!" });
+        setToast({ type: "success", text: "Ringkasan materi selesai dibuat dengan Cloud AI!" });
       } else if (action === "explain") {
         setTutorResult(data.result);
-        setToast({ type: "success", text: "Tutor AI siap menjelaskan materi!" });
+        setToast({ type: "success", text: "Tutor AI siap menjelaskan materi dengan Cloud AI!" });
       } else if (action === "quiz") {
         setQuizQuestions(data.result);
         setSelectedAnswers({});
         setQuizSubmitted(false);
-        setToast({ type: "success", text: "Kuis evaluasi baru berhasil dibuat!" });
+        setToast({ type: "success", text: "Kuis evaluasi baru berhasil dibuat dengan Cloud AI!" });
       }
     } catch (err: any) {
       console.error(err);
       setToast({
         type: "error",
-        text: err.message || "Gagal menghubungkan ke asisten AI. Silakan coba kembali.",
+        text: err.message || "Gagal menghubungkan ke asisten Cloud AI. Silakan gunakan 'Mode Asisten Lokal'.",
       });
     } finally {
       setIsLoading(false);
@@ -313,12 +546,40 @@ export default function StudyMateApp() {
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
-            <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-mono text-slate-500 bg-sky-50 px-2.5 py-1 rounded-full border border-sky-100/50">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              Live GPT model
-            </span>
-            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 text-blue-600 font-bold text-xs ring-2 ring-blue-100/50">
+          <div className="flex items-center gap-2">
+            {/* Mode selection group pills */}
+            <div className="bg-slate-100 p-1 rounded-xl border border-sky-100 flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsLocalMode(true);
+                  setToast({ type: "info", text: "Beralih ke Mode Asisten Lokal (Gratis & Cepat tanpa API Key)" });
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer ${
+                  isLocalMode
+                    ? "bg-blue-600 text-white shadow-xs"
+                    : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
+                }`}
+              >
+                <span>💻 Lokal (Vercel)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsLocalMode(false);
+                  setToast({ type: "info", text: "Beralih ke Cloud AI (Membutuhkan Gemini API Key)" });
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer ${
+                  !isLocalMode
+                    ? "bg-blue-600 text-white shadow-xs"
+                    : "text-slate-600 hover:text-slate-800 hover:bg-white/50"
+                }`}
+              >
+                <span>☁️ Cloud (Gemini)</span>
+              </button>
+            </div>
+
+            <div className="hidden sm:flex items-center justify-center w-8 h-8 rounded-full bg-blue-50 text-blue-600 font-bold text-xs ring-2 ring-blue-100/50">
               S1
             </div>
           </div>
@@ -858,7 +1119,11 @@ export default function StudyMateApp() {
                 <BookOpen className="w-3 h-3 text-sky-400" />
                 <span>Belajar Cerdas dengan AI</span>
               </span>
-              <span>Disertai model: Gemini 2.5 Flash</span>
+              <span>
+                {isLocalMode 
+                  ? "Mesin: Pemrosesan NLP Lokal (Hassle-Free Vercel Static)" 
+                  : "Mesin Cloud: Gemini 2.5 Flash API"}
+              </span>
             </div>
 
           </div>

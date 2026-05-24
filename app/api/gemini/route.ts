@@ -31,9 +31,9 @@ export async function POST(req: NextRequest) {
     if (action === "summarize") {
       const response = await ai.models.generateContent({
         model,
-        contents: `Materi:\n${content}\n\nBuatlah ringkasan materi di atas. Ringkasan harus sangat singkat, padat, menggunakan bullet points (poin-poin) jika memungkinkan, serta ditulis dengan bahasa Indonesia yang mudah dipahami oleh mahasiswa.`,
+        contents: `Materi:\n${content}\n\nBuatlah ringkasan materi di atas. Ringkasan harus sangat singkat, padat, menggunakan bullet points (poin-poin) jika memungkinkan, serta ditulis dengan bahasa Indonesia yang mudah dipahami oleh mahasiswa. \nPENTING: Hanya gunakan informasi dari teks Materi di atas saja. Dilarang menambahkan fakta atau informasi tambahan dari luar yang tidak tertulis dalam Materi!`,
         config: {
-          systemInstruction: "Anda adalah asisten akademik yang ahli merangkum kuliah panjang menjadi ringkasan yang padat, jelas, dan informatif menggunakan bahasa Indonesia.",
+          systemInstruction: "Anda adalah asisten akademik yang HANYA merangkum materi secara objektif berdasarkan teks yang diberikan oleh user. Jangan pernah menambahkan asumsi, opini, atau materi dari luar teks yang diinput.",
         }
       });
 
@@ -42,9 +42,9 @@ export async function POST(req: NextRequest) {
     } else if (action === "explain") {
       const response = await ai.models.generateContent({
         model,
-        contents: `Materi:\n${content}\n\nJelaskan konsep, ide, dan materi di atas seperti tutor pribadi untuk mahasiswa pemula. Gunakan bahasa Indonesia yang ramah, santun, terstruktur, serta beri analogi praktis sehari-hari agar sangat mudah dipahami.`,
+        contents: `Materi:\n${content}\n\nJelaskan konsep, ide, dan materi di atas seperti tutor pribadi untuk mahasiswa pemula. Gunakan bahasa Indonesia yang ramah, santun, terstruktur, serta beri analogi praktis sehari-hari agar sangat mudah dipahami. \nPENTING: Penjelasan Anda wajib didasarkan HANYA pada fakta dan informasi yang ada di dalam teks Materi di atas. Jangan mengarang teori atau membawa konsep eksternal di luar apa yang didefinisikan dalam teks!`,
         config: {
-          systemInstruction: "Anda adalah tutor akademik pribadi mahasiswa yang berbakat mengajar pemula dengan bahasa yang sabar, ramah, dan penuh analogi sederhana.",
+          systemInstruction: "Anda adalah tutor akademik pribadi mahasiswa yang menerangkan materi secara ramah dan sabar, namun HANYA menggunakan konsep yang tertera di dalam teks materi yang disediakan user tanpa menambahkan pengetahuan eksternal di luarnya.",
         }
       });
 
@@ -53,9 +53,9 @@ export async function POST(req: NextRequest) {
     } else if (action === "quiz") {
       const response = await ai.models.generateContent({
         model,
-        contents: `Materi:\n${content}\n\nBuatlah tepat 5 soal pilihan ganda di bahasa Indonesia dari materi di atas. Setiap soal wajib memiliki 4 opsi pilihan (A, B, C, D) dan sertakan kunci jawaban berupa huruf 'A', 'B', 'C', atau 'D' beserta penjelasan singkat mengapa jawaban tersebut benar.`,
+        contents: `Materi:\n${content}\n\nBuatlah tepat 5 soal pilihan ganda di bahasa Indonesia dari materi di atas. Setiap soal wajib memiliki 4 opsi pilihan (A, B, C, D) dan sertakan kunci jawaban berupa huruf 'A', 'B', 'C', atau 'D' beserta penjelasan singkat mengapa jawaban tersebut benar. \nPENTING: Pembuatan soal kuis dan kunci jawaban harus 100% berdasarkan informasi dan fakta eksplisit yang dicantumkan dalam Materi di atas saja. Jangan menguji pengetahuan eksternal apa pun!`,
         config: {
-          systemInstruction: "Anda adalah dosen yang ahli menyusun kuis evaluasi berkualitas tinggi berdasarkan materi kuliah. Keluarkan kuis dalam bentuk format JSON terstruktur.",
+          systemInstruction: "Anda adalah dosen yang menyusun kuis evaluasi berkualitas tinggi berdasarkan materi kuliah. Jawaban dan pertanyaan harus 100% merujuk hanya pada fakta yang tertulis di materi yang diberikan. Keluarkan kuis dalam bentuk format JSON terstruktur.",
           responseMimeType: "application/json",
           responseSchema: {
             type: Type.ARRAY,
